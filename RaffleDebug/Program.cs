@@ -50,10 +50,13 @@ namespace RaffleDebug
                             break;
                         case 3:
                             /*size*/
-                            if (Functions.IsNumeric(command.arguments[0]))
+                            if (command.arguments.Count > 0)
                             {
-                                session.mRaffleSize = Convert.ToInt32(command.arguments[0]);
-                                Console.WriteLine("New size: " + session.mRaffleSize);
+                                if (Functions.IsNumeric(command.arguments[0]))
+                                {
+                                    session.mRaffleSize = Convert.ToInt32(command.arguments[0]);
+                                    Console.WriteLine("New size: " + session.mRaffleSize);
+                                }
                             }
                             break;
                     }
