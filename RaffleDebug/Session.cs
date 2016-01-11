@@ -57,6 +57,10 @@ namespace RaffleDebug
         }
 
 
+        /// <summary>
+        /// TimerCallback - This occurs when timer runs out
+        /// This will pick a winner from the current entries
+        /// </summary>
         private void RaffleTimerCallback(object o, ElapsedEventArgs e)
         {
             /*Close raffle*/
