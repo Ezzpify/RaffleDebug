@@ -75,44 +75,51 @@ namespace RaffleDebug
         /// </summary>
         public void PickWinner(bool closedByTimer = true)
         {
-            /*If it was not finished by timer, send in an invalid timestamp to stop timer*/
-            if (!closedByTimer)
+            if (mRaffleEntryList.Count > 0)
             {
-                Config.UpdateRaffle UR = new Config.UpdateRaffle()
+                /*If it was not finished by timer, send in an invalid timestamp to stop timer*/
+                if (!closedByTimer)
                 {
-                    currentsize = mRaffleSize,
-                    raffletime = DateTime.UtcNow.AddHours(-1).ToString("yyyy MM dd HH mm ss")
-                };
-                string jsonUR = JsonConvert.SerializeObject(UR, Formatting.None);
-                Website.UpdateRaffle(jsonUR);
+                    Config.UpdateRaffle UR = new Config.UpdateRaffle()
+                    {
+                        currentsize = mRaffleSize,
+                        raffletime = DateTime.UtcNow.AddHours(-1).ToString("yyyy MM dd HH mm ss")
+                    };
+                    string jsonUR = JsonConvert.SerializeObject(UR, Formatting.None);
+                    Website.UpdateRaffle(jsonUR);
+                }
+
+                /*Close raffle*/
+                Console.WriteLine("Picking winner...");
+                mRaffleOpen = false;
+                Thread.Sleep(500);
+                mProvably.PreWin();
+
+                /*Start new raffle*/
+                var raffle = new Raffle<Config.Entry>();
+                foreach (var entry in mRaffleEntryList)
+                {
+                    raffle.Add(entry, entry.Value);
+                }
+
+                /*Draw a winner*/
+                var winner = raffle.Draw(mProvably.mProvablyOld.RaffleRandom);
+                Console.WriteLine("Winner: {0}", winner.Key.SteamID);
+                Website.NewWinner(
+                    winner.Key.SteamID,
+                    mProvably.mProvablyNew.PublicKey,
+                    mProvably.mProvablyOld.PrivateKey,
+                    mProvably.mProvablyOld.PrivateRandom);
+                mProvably.PostWin();
+
+                /*Reset raffle*/
+                mRaffleOpen = true;
+                mRaffleEntryList.Clear();
             }
-
-            /*Close raffle*/
-            Console.WriteLine("Picking winner...");
-            mRaffleOpen = false;
-            Thread.Sleep(500);
-            mProvably.PreWin();
-
-            /*Start new raffle*/
-            var raffle = new Raffle<Config.Entry>();
-            foreach (var entry in mRaffleEntryList)
+            else
             {
-                raffle.Add(entry, entry.Value);
+                Console.WriteLine("Need at least one entry to pick a winner");
             }
-
-            /*Draw a winner*/
-            var winner = raffle.Draw(mProvably.mProvablyOld.RaffleRandom);
-            Console.WriteLine("Winner: {0}", winner.Key.SteamID);
-            Website.NewWinner(
-                winner.Key.SteamID, 
-                mProvably.mProvablyNew.PublicKey, 
-                mProvably.mProvablyOld.PrivateKey, 
-                mProvably.mProvablyOld.PrivateRandom);
-            mProvably.PostWin();
-
-            /*Reset raffle*/
-            mRaffleOpen = true;
-            mRaffleEntryList.Clear();
         }
 
 
