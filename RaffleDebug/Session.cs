@@ -96,8 +96,9 @@ namespace RaffleDebug
                 /*Close raffle*/
                 Console.WriteLine("Picking winner...");
                 mRaffleOpen = false;
-                Thread.Sleep(500);
+                mRaffleTimer.Stop();
                 mProvably.PreWin();
+                Thread.Sleep(500);
 
                 /*Start new raffle*/
                 var raffle = new Raffle<Config.Entry>();
