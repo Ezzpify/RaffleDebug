@@ -13,24 +13,21 @@ namespace RaffleDebug
         /// <param name="Parameter">Parameter string to send</param>
         private static void SendInformation(string Url, string Parameter)
         {
-            Task.Run(() =>
+            bool success = false;
+            int attempts = 10;
+            while (attempts-- > 0)
             {
-                bool success = false;
-                int attempts = 10;
-                while (attempts-- > 0)
+                if (UploadString(Url, Parameter) == "OK")
                 {
-                    if (UploadString(Url, Parameter) == "OK")
-                    {
-                        success = true;
-                        break;
-                    }
+                    success = true;
+                    break;
                 }
+            }
 
-                if (success)
-                {
-                    UpdateJson();
-                }
-            });
+            if (success)
+            {
+                UpdateJson();
+            }
         }
 
         /// <summary>

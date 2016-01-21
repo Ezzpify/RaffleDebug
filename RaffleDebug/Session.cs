@@ -11,10 +11,20 @@ namespace RaffleDebug
     class Session
     {
         /// <summary>
-        /// Public variables
+        /// Represents if the bot is currently in running state
         /// </summary>
         public bool mIsRunning { get; set; } = true;
+
+
+        /// <summary>
+        /// Represents if the raffle is open and accepts entries
+        /// </summary>
         public bool mRaffleOpen { get; set; } = true;
+
+
+        /// <summary>
+        /// Represents the current raffle size limit
+        /// </summary>
         public int mRaffleSize { get; set; } = 10;
 
 
@@ -81,6 +91,13 @@ namespace RaffleDebug
         {
             if (mRaffleEntryList.Count > 0)
             {
+                /*Close raffle*/
+                Console.WriteLine("Picking winner...");
+                mRaffleOpen = false;
+                mRaffleTimer.Stop();
+                mProvably.PreWin();
+                Thread.Sleep(500);
+
                 /*If it was not finished by timer, send in an invalid timestamp to stop timer*/
                 if (!closedByTimer)
                 {
@@ -92,13 +109,6 @@ namespace RaffleDebug
                     string jsonUR = JsonConvert.SerializeObject(UR, Formatting.None);
                     Website.UpdateRaffle(jsonUR);
                 }
-
-                /*Close raffle*/
-                Console.WriteLine("Picking winner...");
-                mRaffleOpen = false;
-                mRaffleTimer.Stop();
-                mProvably.PreWin();
-                Thread.Sleep(500);
 
                 /*Start new raffle*/
                 var raffle = new Raffle<Config.Entry>();
@@ -116,6 +126,7 @@ namespace RaffleDebug
                     mProvably.mProvablyOld.PrivateKey,
                     mProvably.mProvablyOld.PrivateRandom);
                 mProvably.PostWin();
+                Thread.Sleep(10000);
 
                 /*Reset raffle*/
                 mRaffleOpen = true;
@@ -137,7 +148,7 @@ namespace RaffleDebug
             Console.WriteLine("Bet thread started");
             while (mIsRunning)
             {
-                Thread.Sleep(2000);
+                Thread.Sleep(2500);
                 try
                 {
                     /*Download json string from website*/
@@ -147,7 +158,6 @@ namespace RaffleDebug
 
                     /*Attempt to deserialize string*/
                     Config.TradeOffer[] receivedOffers = JsonConvert.DeserializeObject<Config.TradeOffer[]>(webOffers);
-                    Console.WriteLine(webOffers);
                     if (receivedOffers == null)
                         continue;
 
@@ -158,6 +168,7 @@ namespace RaffleDebug
                         {
                             /*Update the trade offer*/
                             Console.WriteLine("New offer from {0}", tradeOffer.SteamId);
+                            Console.WriteLine(JsonConvert.SerializeObject(tradeOffer, Formatting.Indented));
                             Website.UpdateEntry("123", tradeOffer.QueId, "no");
                             Website.InQueue(tradeOffer.QueId);
 
@@ -210,33 +221,20 @@ namespace RaffleDebug
                         mRaffleEntryList.Add(uEntry);
                         offersToBeRemoved.Add(tradeOffer);
 
-                        /*Start timer if we have more than 2 entries like on live*/
-                        if (mRaffleEntryList.Count >= 2 && !mRaffleTimer.Enabled)
-                        {
-                            Console.WriteLine("Starting timer");
-                            StartRaffleTimer();
-                        }
-
-                        /*Get raffle item count*/
-                        int raffleItemsInPot = 0;
-                        foreach (var entry in mRaffleEntryList)
-                        {
-                            raffleItemsInPot += entry.Items.Count;
-                        }
-
                         /*If we have enough items, start raffle*/
-                        if (raffleItemsInPot >= mRaffleSize)
+                        if (mRaffleEntryList.Sum(o => o.Items.Count) >= mRaffleSize)
                         {
                             PickWinner(false);
+                        }
+                        else if (mRaffleEntryList.Count >= 2 && !mRaffleTimer.Enabled)
+                        {
+                            StartRaffleTimer();
                         }
                     }
                 }
 
                 /*Remove offers from accepted queue*/
-                foreach (var offer in offersToBeRemoved)
-                {
-                    mQueuedAcceptedOffersList.Remove(offer);
-                }
+                mQueuedAcceptedOffersList = mQueuedAcceptedOffersList.Except(offersToBeRemoved).ToList();
             }
         }
 
@@ -247,6 +245,7 @@ namespace RaffleDebug
         private void StartRaffleTimer()
         {
             /*Get utc timestamp*/
+            Console.WriteLine("Starting timer");
             string utcTimestamp = DateTime.UtcNow.AddMinutes(3).ToString("yyyy MM dd HH mm ss");
 
             /*Send info to site and start timer*/
